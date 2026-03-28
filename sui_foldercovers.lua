@@ -859,7 +859,31 @@ function M.install()
                         ptw,
                     },
                 }
-                badge_widget:paintTo(bb, fx + inset, fy + fh - rect_h - inset)
+                -- Replicate the native bar geometry to anchor badge position.
+                -- mosaicmenu bar pos_y = y + self.height - ceil((self.height-target.height)/2)
+                --                        - corner_sz + bar_margin
+                -- In paintTo context fy = y + ceil((self.height - fh)/2), so:
+                --   bar_top = fy + fh - corner_sz + bar_margin
+                local bar_height = Screen:scaleBySize(8)
+                local corner_sz  = math.floor(math.min(self.width, self.height) / 8)
+                local bar_margin = math.floor((corner_sz - bar_height) / 2)
+
+                -- X: badge left edge matches bar left edge
+                local badge_x = fx + math.max(bar_margin, inset)
+
+                -- Y: when bar hidden, centre badge on bar's Y; when bar shown, place badge above it.
+                local bar_top    = fy + fh - corner_sz + bar_margin
+                local bar_centre = bar_top + math.floor(bar_height / 2)
+                local badge_y
+                if self.show_progress_bar then
+                    local bar_gap = Screen:scaleBySize(4)
+                    badge_y = bar_top - bar_gap - rect_h
+                else
+                    -- shift badge up by the same amount used as left padding
+                    local bottom_pad = math.max(bar_margin, inset)
+                    badge_y = bar_centre - math.floor(rect_h / 2) - bottom_pad
+                end
+                badge_widget:paintTo(bb, badge_x, badge_y)
                 badge_widget:free()
             end
         end

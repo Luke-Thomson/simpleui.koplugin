@@ -87,7 +87,13 @@ function M.patchFileManagerClass(plugin)
     FileManager._simpleui_ges_patched = false
     FileManager.initGesListener = function(fm_self)
         orig_initGesListener(fm_self)
-        -- Override the zone registered above so its handler returns true.
+        -- Override the zone registered above so its handler returns true,
+        -- consuming the event after a page-turn swipe to prevent it from
+        -- propagating a second time through WidgetContainer children.
+        -- Exception: swipes going "south" (downward) must NOT be consumed
+        -- here so that FileManagerMenu's zones can catch them and open the
+        -- top menu.  The same applies to "north" swipes in case the user has
+        -- configured the menu to open on an upward swipe.
         fm_self:registerTouchZones({
             {
                 id          = "filemanager_swipe",
@@ -97,6 +103,12 @@ function M.patchFileManagerClass(plugin)
                     ratio_w = 1, ratio_h = 1,
                 },
                 handler = function(ges)
+                    -- Do not consume menu-direction swipes: let them fall
+                    -- through to FileManagerMenu's touch zones (filemanager_swipe
+                    -- and filemanager_ext_swipe registered on the FM child menu).
+                    if ges.direction == "south" or ges.direction == "north" then
+                        return false
+                    end
                     fm_self:onSwipeFM(ges)
                     return true
                 end,
