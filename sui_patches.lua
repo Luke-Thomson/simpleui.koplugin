@@ -1214,6 +1214,7 @@ function M.patchUIManagerClose(plugin)
                 and widget.name ~= "homescreen"
                 and not widget_is_fm
                 and not widget._navbar_closing_intentionally
+                and not (widget._manager and widget._manager.folder_shortcuts)
                 and UIManager._exit_code == nil then
             local FM2 = package.loaded["apps/filemanager/filemanager"]
             local fm  = FM2 and FM2.instance
