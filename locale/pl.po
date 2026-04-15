@@ -2060,3 +2060,132 @@ msgid "Cannot place modules after Page 1 separator.\n"
 "Page 1 must always have at least 1 module."
 msgstr "Nie można umieszczać modułów po separatorze Strony 1.\n"
 "Strona 1 musi zawsze mieć co najmniej 1 moduł."
+
+msgid "Authors"
+msgstr "Autorzy"
+
+msgid "Browse"
+msgstr "Przeglądaj"
+
+msgid "Browse by"
+msgstr "Przeglądaj według"
+
+msgid "Browse by Author / Series"
+msgstr "Przeglądaj według autora/serii"
+
+msgid "Browse by Authors/Series not available."
+msgstr "Przeglądanie według autorów/serii jest niedostępne."
+
+msgid "Browse library"
+msgstr "Przeglądaj bibliotekę"
+
+msgid "By author"
+msgstr "Według autora"
+
+msgid "By series"
+msgstr "Według serii"
+
+msgid "Collections (%1)"
+msgstr "Kolekcje (%1)"
+
+msgid "Custom File"
+msgstr "Plik niestandardowy"
+
+msgid "Enable 'Browse by Author / Series' in the library menu first."
+msgstr "Najpierw włącz „Przeglądaj według autora/serii" w menu biblioteki."
+
+msgid "Fetching bookmarks\\xe2\\x80\\xa6"
+msgstr "Pobieranie zakładek…"
+
+msgid "No .lua files found in custom_quotes/"
+msgstr "Nie znaleziono plików .lua w custom_quotes/"
+
+msgid "No books found."
+msgstr "Nie znaleziono żadnych książek."
+
+msgid "No custom quotes found. Add a .lua file to the plugin\\'s desktop_modules/custom_quotes/ folder and select it in Settings."
+msgstr "Nie znaleziono niestandardowych cytatów. Dodaj plik .lua do folderu desktop_modules/custom_quotes/ wtyczki i wybierz go w Ustawieniach."
+
+msgid "Place .lua files in the plugin's desktop_modules/custom_quotes/ folder"
+msgstr "Umieść pliki .lua w folderze desktop_modules/custom_quotes/ wtyczki"
+
+msgid "Series"
+msgstr "Serie"
+
+msgid "Set virtual folder cover…"
+msgstr "Ustaw okładkę folderu wirtualnego…"
+
+msgid "The «To Be Read» collection cannot be renamed."
+msgstr "Kolekcja «Do przeczytania» nie może być zmieniona."
+
+msgid "To Be Read list is full (max. 5 books)."
+msgstr "Lista Do przeczytania jest pełna (maks. 5 książek)."
+
+msgid "Virtual folder cover"
+msgstr "Okładka folderu wirtualnego"
+
+msgid "  (%d left)"
+msgid_plural "  (%d left)"
+msgstr[0] "  (%d pozostało)"
+msgstr[1] "  (%d pozostały)"
+msgstr[2] "  (%d pozostało)"
+
+msgid "  Set Goal  (%d book in %s)"
+msgid_plural "  Set Goal  (%d books in %s)"
+msgstr[0] "  Ustaw cel  (%d książka w %s)"
+msgstr[1] "  Ustaw cel  (%d książki w %s)"
+msgstr[2] "  Ustaw cel  (%d książek w %s)"
+
+msgid "%d book"
+msgid_plural "%d books"
+msgstr[0] "%d książka"
+msgstr[1] "%d książki"
+msgstr[2] "%d książek"
+
+msgid "%d day of reading"
+msgid_plural "%d days of reading"
+msgstr[0] "%d dzień czytania"
+msgstr[1] "%d dni czytania"
+msgstr[2] "%d dni czytania"
+
+msgid "%d/%d book"
+msgid_plural "%d/%d books"
+msgstr[0] "%d/%d książka"
+msgstr[1] "%d/%d książki"
+msgstr[2] "%d/%d książek"
+
+msgid "Digital: %d book in %s"
+msgid_plural "Digital: %d books in %s"
+msgstr[0] "Cyfrowe: %d książka w %s"
+msgstr[1] "Cyfrowe: %d książki w %s"
+msgstr[2] "Cyfrowe: %d książek w %s"
+
+msgid "Physical: %d book in %s"
+msgid_plural "Physical: %d books in %s"
+msgstr[0] "Fizyczne: %d książka w %s"
+msgstr[1] "Fizyczne: %d książki w %s"
+msgstr[2] "Fizyczne: %d książek w %s"
+
+msgid "The maximum of %d action per module has been reached. Remove one first."
+msgid_plural "The maximum of %d actions per module has been reached. Remove one first."
+msgstr[0] "Osiągnięto maksymalną liczbę %d akcji na moduł. Najpierw usuń jedną."
+msgstr[1] "Osiągnięto maksymalną liczbę %d akcji na moduł. Najpierw usuń jedną."
+msgstr[2] "Osiągnięto maksymalną liczbę %d akcji na moduł. Najpierw usuń jedną."
+
+msgid "The maximum of %d quick action has been reached. Delete one first."
+msgid_plural "The maximum of %d quick actions has been reached. Delete one first."
+msgstr[0] "Osiągnięto maksymalną liczbę %d szybkiej akcji. Najpierw usuń jedną."
+msgstr[1] "Osiągnięto maksymalną liczbę %d szybkich akcji. Najpierw usuń jedną."
+msgstr[2] "Osiągnięto maksymalną liczbę %d szybkich akcji. Najpierw usuń jedną."
+
+msgid "The maximum of %d stat per row has been reached. Remove one first."
+msgid_plural "The maximum of %d stats per row has been reached. Remove one first."
+msgstr[0] "Osiągnięto maksymalną liczbę %d statystyki w wierszu. Najpierw usuń jedną."
+msgstr[1] "Osiągnięto maksymalną liczbę %d statystyk w wierszu. Najpierw usuń jedną."
+msgstr[2] "Osiągnięto maksymalną liczbę %d statystyk w wierszu. Najpierw usuń jedną."
+
+msgid "The maximum of %d tab has been reached. Remove one first."
+msgid_plural "The maximum of %d tabs has been reached. Remove one first."
+msgstr[0] "Osiągnięto maksymalną liczbę %d zakładki. Najpierw usuń jedną."
+msgstr[1] "Osiągnięto maksymalną liczbę %d zakładek. Najpierw usuń jedną."
+msgstr[2] "Osiągnięto maksymalną liczbę %d zakładek. Najpierw usuń jedną."
