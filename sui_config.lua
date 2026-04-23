@@ -117,7 +117,7 @@ M.MAX_CUSTOM_QA          = 24
 -- When the navpager is enabled the bar always shows exactly this many centre tabs.
 M.NAVPAGER_CENTER_TABS   = 4
 
-M.DEFAULT_TABS = { "home", "collections", "history", "continue", "favorites" }
+M.DEFAULT_TABS = { "homescreen", "opds", "stats_page", "highlights" }
 
 -- Fallback tab IDs used when a duplicate 'home' is detected.
 M.NON_HOME_DEFAULTS = {}
@@ -132,6 +132,9 @@ end
 M.ALL_ACTIONS = {
     { id = "home",             label = _("Library"),          icon = M.ICON.library     },
     { id = "homescreen",       label = _("Home"),             icon = M.ICON.ko_home     },
+    { id = "opds",             label = _("OPDS"),             icon = M.ICON.plugin      },
+    { id = "stats_page",       label = _("Stats"),            icon = M.ICON.stats       },
+    { id = "highlights",       label = _("Highlights"),       icon = M.ICON.ko_bookmark },
     { id = "collections",      label = _("Collections"),      icon = M.ICON.collections },
     { id = "history",          label = _("History"),          icon = M.ICON.history     },
     { id = "continue",         label = _("Continue"),         icon = M.ICON.continue_   },
@@ -626,7 +629,7 @@ function M.applyFirstRunDefaults()
         G_reader_settings:saveSetting("navbar_mode",           "both")
         G_reader_settings:saveSetting("navbar_bar_size",       "default")
         G_reader_settings:saveSetting("navbar_tabs",
-            { "home", "homescreen", "history", "continue", "power" })
+            { "homescreen", "opds", "stats_page", "highlights" })
 
         -- Top bar: clock left, battery + wifi right; rest hidden
         M.saveTopbarConfig({
@@ -635,22 +638,38 @@ function M.applyFirstRunDefaults()
             order_right = { "wifi", "battery" },
         })
 
-        -- Homescreen modules: header + currently + recent on; everything else off
+        -- Homescreen modules: opinionated library dashboard with cover-heavy modules.
         local PFX = "navbar_homescreen_"
-        G_reader_settings:saveSetting(PFX .. "header_enabled",  true)
-        G_reader_settings:saveSetting(PFX .. "header",          "clock_date")
-        G_reader_settings:saveSetting(PFX .. "currently",       true)
-        G_reader_settings:saveSetting(PFX .. "recent",          true)
-        G_reader_settings:saveSetting(PFX .. "collections",     false)
-        G_reader_settings:saveSetting(PFX .. "reading_goals",   false)
-        G_reader_settings:saveSetting(PFX .. "reading_stats_enabled",          false)
-        G_reader_settings:saveSetting(PFX .. "quick_actions_1_enabled",        true)
-        G_reader_settings:saveSetting(PFX .. "quick_actions_1_items",          { "bookmark_browser" })
-        G_reader_settings:saveSetting(PFX .. "quick_actions_2_enabled",        false)
-        G_reader_settings:saveSetting(PFX .. "quick_actions_3_enabled",        false)
+        G_reader_settings:saveSetting(PFX .. "clock_enabled",  true)
+        G_reader_settings:saveSetting(PFX .. "clock_date",     true)
+        G_reader_settings:saveSetting(PFX .. "clock_battery",  false)
+        G_reader_settings:saveSetting(PFX .. "quote_enabled",  false)
+        G_reader_settings:saveSetting(PFX .. "currently",      true)
+        G_reader_settings:saveSetting(PFX .. "recent",         true)
+        G_reader_settings:saveSetting(PFX .. "coverdeck",      true)
+        G_reader_settings:saveSetting(PFX .. "new_books",      true)
+        G_reader_settings:saveSetting(PFX .. "collections",    false)
+        G_reader_settings:saveSetting(PFX .. "tbr",            false)
+        G_reader_settings:saveSetting(PFX .. "reading_goals",  false)
+        G_reader_settings:saveSetting(PFX .. "reading_stats_enabled",   false)
+        G_reader_settings:saveSetting(PFX .. "quick_actions_1_enabled", false)
+        G_reader_settings:saveSetting(PFX .. "quick_actions_2_enabled", false)
+        G_reader_settings:saveSetting(PFX .. "quick_actions_3_enabled", false)
+        G_reader_settings:saveSetting(PFX .. "module_order", {
+            "clock", "currently", "recent", "coverdeck", "new_books",
+        })
+
+        -- Dedicated stats page: reading goals + a compact set of progress stats.
+        local SPFX = "navbar_statspage_"
+        G_reader_settings:saveSetting(SPFX .. "reading_goals", true)
+        G_reader_settings:saveSetting(SPFX .. "reading_stats_enabled", true)
+        G_reader_settings:saveSetting(SPFX .. "reading_stats_items", {
+            "today_time", "today_pages", "avg_time", "avg_pages", "total_books", "streak",
+        })
+        G_reader_settings:saveSetting(SPFX .. "reading_stats_type", "cards")
 
         -- General
-        G_reader_settings:saveSetting("start_with", "filemanager")
+        G_reader_settings:saveSetting("start_with", "homescreen_simpleui")
 
         G_reader_settings:saveSetting("simpleui_defaults_v1", true)
     end
@@ -691,6 +710,51 @@ function M.applyFirstRunDefaults()
             order_right = { "browse_button", "menu_button" },
         })
         G_reader_settings:saveSetting("simpleui_defaults_v3", true)
+    end
+
+    -- ---------------------------------------------------------------------------
+    -- v4: switch existing installs to the simplified four-tab dashboard preset.
+    -- This intentionally replaces the earlier "sample everything" layout with:
+    --   Home        -> cover-heavy library dashboard
+    --   OPDS        -> OPDS browser launcher
+    --   Stats       -> dedicated reading stats page
+    --   Highlights  -> grouped highlights browser
+    -- ---------------------------------------------------------------------------
+    if not G_reader_settings:readSetting("simpleui_defaults_v4") then
+        local PFX  = "navbar_homescreen_"
+        local SPFX = "navbar_statspage_"
+
+        G_reader_settings:saveSetting("navbar_tabs",
+            { "homescreen", "opds", "stats_page", "highlights" })
+        G_reader_settings:saveSetting("start_with", "homescreen_simpleui")
+
+        G_reader_settings:saveSetting(PFX .. "clock_enabled",  true)
+        G_reader_settings:saveSetting(PFX .. "clock_date",     true)
+        G_reader_settings:saveSetting(PFX .. "clock_battery",  false)
+        G_reader_settings:saveSetting(PFX .. "quote_enabled",  false)
+        G_reader_settings:saveSetting(PFX .. "currently",      true)
+        G_reader_settings:saveSetting(PFX .. "recent",         true)
+        G_reader_settings:saveSetting(PFX .. "coverdeck",      true)
+        G_reader_settings:saveSetting(PFX .. "new_books",      true)
+        G_reader_settings:saveSetting(PFX .. "collections",    false)
+        G_reader_settings:saveSetting(PFX .. "tbr",            false)
+        G_reader_settings:saveSetting(PFX .. "reading_goals",  false)
+        G_reader_settings:saveSetting(PFX .. "reading_stats_enabled",   false)
+        G_reader_settings:saveSetting(PFX .. "quick_actions_1_enabled", false)
+        G_reader_settings:saveSetting(PFX .. "quick_actions_2_enabled", false)
+        G_reader_settings:saveSetting(PFX .. "quick_actions_3_enabled", false)
+        G_reader_settings:saveSetting(PFX .. "module_order", {
+            "clock", "currently", "recent", "coverdeck", "new_books",
+        })
+
+        G_reader_settings:saveSetting(SPFX .. "reading_goals", true)
+        G_reader_settings:saveSetting(SPFX .. "reading_stats_enabled", true)
+        G_reader_settings:saveSetting(SPFX .. "reading_stats_items", {
+            "today_time", "today_pages", "avg_time", "avg_pages", "total_books", "streak",
+        })
+        G_reader_settings:saveSetting(SPFX .. "reading_stats_type", "cards")
+
+        G_reader_settings:saveSetting("simpleui_defaults_v4", true)
     end
 end
 

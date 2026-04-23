@@ -913,6 +913,103 @@ local function showUnavailable(msg)
     UIManager:show(InfoMessage():new{ text = msg, timeout = 3 })
 end
 
+local function _resolvePluginLauncher(match_fn)
+    local fm_mod = package.loaded["apps/filemanager/filemanager"]
+    local fm = fm_mod and fm_mod.instance
+    if not fm then return nil, nil, nil end
+
+    local native_keys = {
+        screenshot=true, menu=true, history=true, bookinfo=true, collections=true,
+        filesearcher=true, folder_shortcuts=true, languagesupport=true,
+        dictionary=true, wikipedia=true, devicestatus=true, devicelistener=true,
+        networklistener=true,
+    }
+    local our_name = "simpleui"
+    local fm_val_to_key = {}
+    for k, v in pairs(fm) do
+        if type(k) == "string" and type(v) == "table" then
+            fm_val_to_key[v] = k
+        end
+    end
+
+    for i = 1, #fm do
+        local plugin_inst = fm[i]
+        if type(plugin_inst) ~= "table" then goto cont end
+
+        local fm_key = fm_val_to_key[plugin_inst]
+        if not fm_key or native_keys[fm_key] or fm_key == our_name then goto cont end
+
+        local texts = { tostring(fm_key), tostring(plugin_inst.name or "") }
+        if type(plugin_inst.addToMainMenu) == "function" then
+            local probe = {}
+            local ok = pcall(function() plugin_inst:addToMainMenu(probe) end)
+            if ok then
+                local entry = probe[fm_key] or probe[plugin_inst.name]
+                if entry and type(entry.text) == "string" then
+                    texts[#texts + 1] = entry.text
+                end
+            end
+        end
+
+        local matched = false
+        for _, raw_text in ipairs(texts) do
+            if match_fn(raw_text or "") then
+                matched = true
+                break
+            end
+        end
+        if not matched then goto cont end
+
+        local method = nil
+        for _, pfx in ipairs({ "onShow", "show", "open", "launch", "onOpen" }) do
+            if type(plugin_inst[pfx]) == "function" then
+                method = pfx
+                break
+            end
+        end
+        if not method then
+            local cap = "on" .. fm_key:sub(1, 1):upper() .. fm_key:sub(2)
+            if type(plugin_inst[cap]) == "function" then method = cap end
+        end
+        if not method and type(plugin_inst.addToMainMenu) == "function" then
+            local probe = {}
+            local ok = pcall(function() plugin_inst:addToMainMenu(probe) end)
+            if ok then
+                local entry = probe[fm_key] or probe[plugin_inst.name]
+                if entry and type(entry.callback) == "function" then
+                    local cb = entry.callback
+                    plugin_inst._sui_launch = function(_self) cb() end
+                    method = "_sui_launch"
+                end
+            end
+        end
+        if method then
+            return plugin_inst, method, fm_key
+        end
+        ::cont::
+    end
+
+    return nil, nil, nil
+end
+
+local function _launchOPDSCatalog()
+    local function is_opds_label(text)
+        local lower = tostring(text or ""):lower()
+        return lower:find("opds", 1, true) ~= nil
+            or (lower:find("catalog", 1, true) ~= nil and lower:find("book", 1, true) == nil)
+    end
+
+    local plugin_inst, method = _resolvePluginLauncher(is_opds_label)
+    if not (plugin_inst and method and type(plugin_inst[method]) == "function") then
+        return false
+    end
+
+    local ok = pcall(function()
+        plugin_inst[method](plugin_inst)
+    end)
+    return ok
+end
+
 local function setActiveAndRefreshFM(plugin, action_id, tabs)
     -- Never mark an action-only tab (bookmark_browser, wifi, etc.) as the
     -- active navigation tab — doing so would light up its indicator even
@@ -1360,6 +1457,27 @@ function M.navigate(plugin, action_id, fm_self, tabs, force)
             HS.show(on_qa_tap, on_goal_tap)
         else
             showUnavailable(_("Homescreen not available."))
+        end
+
+    elseif action_id == "stats_page" then
+        local ok_stats, StatsPage = pcall(require, "sui_statspage")
+        if ok_stats and StatsPage and type(StatsPage.show) == "function" then
+            StatsPage.show()
+        else
+            showUnavailable(_("Stats page not available."))
+        end
+
+    elseif action_id == "highlights" then
+        local ok_hl, Highlights = pcall(require, "sui_highlights")
+        if ok_hl and Highlights and type(Highlights.show) == "function" then
+            Highlights.show()
+        else
+            showUnavailable(_("Highlights page not available."))
+        end
+
+    elseif action_id == "opds" then
+        if not _launchOPDSCatalog() then
+            showUnavailable(_("OPDS catalog not available."))
         end
 
     elseif action_id == "favorites" then

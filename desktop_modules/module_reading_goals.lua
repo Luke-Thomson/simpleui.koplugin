@@ -345,6 +345,8 @@ local function _refreshHS()
     if SP then SP.invalidate() end
     local HS = package.loaded["sui_homescreen"]
     if HS then HS.refresh(false) end
+    local StatsPage = package.loaded["sui_statspage"]
+    if StatsPage and StatsPage.refresh then StatsPage.refresh() end
 end
 
 -- Dialog: set the annual book goal
