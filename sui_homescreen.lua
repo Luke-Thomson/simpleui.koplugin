@@ -1969,7 +1969,7 @@ function HomescreenWidget:_updatePage(keep_cache, books_only)
     body:clear()
 
     local topbar_on = G_reader_settings:nilOrTrue("navbar_topbar_enabled")
-    local top_pad   = topbar_on and MOD_GAP or (MOD_GAP * 2)
+    local top_pad   = topbar_on and math.floor(MOD_GAP * 0.6) or MOD_GAP
     -- topbar_on is passed to _updateFooter to avoid re-reading the same setting.
     body[#body+1] = self:_vspan(top_pad)
 

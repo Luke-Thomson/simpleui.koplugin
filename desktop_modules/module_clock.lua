@@ -1,7 +1,6 @@
 -- module_clock.lua — Simple UI
 -- Clock module: clock always visible, with optional date and battery toggles.
 
-local Blitbuffer      = require("ffi/blitbuffer")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local datetime        = require("datetime")
 local Device          = require("device")
@@ -65,14 +64,13 @@ end
 -- Pixel constants — base values at 100% scale; scaled at render time.
 -- ---------------------------------------------------------------------------
 
-local _BASE_CLOCK_W       = Screen:scaleBySize(50)
-local _BASE_CLOCK_FS      = Screen:scaleBySize(44)
+local _BASE_CLOCK_W       = Screen:scaleBySize(38)
+local _BASE_CLOCK_FS      = Screen:scaleBySize(36)
 local _BASE_DATE_H        = Screen:scaleBySize(17)
-local _BASE_DATE_GAP      = Screen:scaleBySize(19)
-local _BASE_DATE_FS       = Screen:scaleBySize(11)
+local _BASE_DATE_GAP      = Screen:scaleBySize(8)
+local _BASE_DATE_FS       = Screen:scaleBySize(10)
 local _BASE_BATT_FS       = Screen:scaleBySize(10)
 local _BASE_BATT_H        = Screen:scaleBySize(15)
-local _BASE_BATT_GAP      = Screen:scaleBySize(6)
 local _BASE_BOT_PAD_EXTRA = Screen:scaleBySize(4)
 
 -- ---------------------------------------------------------------------------
@@ -160,7 +158,6 @@ local function build(w, pfx, vspan_pool)
     local date_fs       = math.max(8,  math.floor(_BASE_DATE_FS   * scale))
     local batt_fs       = math.max(7,  math.floor(_BASE_BATT_FS   * scale))
     local batt_h        = math.max(7,  math.floor(_BASE_BATT_H    * scale))
-    local batt_gap      = math.max(2,  math.floor(_BASE_BATT_GAP  * scale))
     local bot_pad_extra = math.floor(_BASE_BOT_PAD_EXTRA * scale)
 
     local show_clock = isClockEnabled(pfx)
@@ -178,31 +175,30 @@ local function build(w, pfx, vspan_pool)
                 text = datetime.secondsToHour(os.time(), G_reader_settings:isTrue("twelve_hour_clock")),
                 face = Font:getFace("smallinfofont", clock_fs),
                 bold = true,
+                width = inner_w,
+                alignment = "left",
             },
         }
     end
 
+    local meta_parts = {}
     if show_date then
+        meta_parts[#meta_parts + 1] = _localDate()
+    end
+    if show_batt then
+        local lvl, charging = _battInfo()
+        meta_parts[#meta_parts + 1] = _battText(lvl, charging)
+    end
+    if #meta_parts > 0 then
         if #vg > 0 then vg[#vg+1] = _vspan(date_gap, vspan_pool) end
         vg[#vg+1] = CenterContainer:new{
-            dimen = Geom:new{ w = inner_w, h = date_h },
+            dimen = Geom:new{ w = inner_w, h = math.max(date_h, batt_h) },
             TextWidget:new{
-                text    = _localDate(),
-                face    = Font:getFace("smallinfofont", date_fs),
+                text    = table.concat(meta_parts, "   |   "),
+                face    = Font:getFace("smallinfofont", math.max(date_fs, batt_fs)),
                 fgcolor = CLR_TEXT_SUB,
-            },
-        }
-    end
-
-    if show_batt then
-        if #vg > 0 then vg[#vg+1] = _vspan(batt_gap, vspan_pool) end
-        local lvl, charging = _battInfo()
-        vg[#vg+1] = CenterContainer:new{
-            dimen = Geom:new{ w = inner_w, h = batt_h },
-            TextWidget:new{
-                text    = _battText(lvl, charging),
-                face    = Font:getFace("smallinfofont", batt_fs),
-                fgcolor = CLR_TEXT_SUB,
+                width   = inner_w,
+                alignment = "left",
             },
         }
     end
@@ -211,7 +207,9 @@ local function build(w, pfx, vspan_pool)
 
     return FrameContainer:new{
         bordersize     = 0,
-        padding        = PAD,
+        padding_left   = PAD,
+        padding_right  = PAD,
+        padding_top    = PAD2,
         padding_bottom = PAD2 + bot_pad_extra,
         vg,
     }
@@ -433,22 +431,18 @@ function M.getHeight(ctx)
     local date_h    = math.max(8, math.floor(_BASE_DATE_H   * scale))
     local date_gap  = math.max(2, math.floor(_BASE_DATE_GAP * scale))
     local batt_h    = math.max(7, math.floor(_BASE_BATT_H   * scale))
-    local batt_gap  = math.max(2, math.floor(_BASE_BATT_GAP * scale))
 
-    local h_base      = PAD * 2 + PAD2
+    local h_base      = PAD + PAD2 * 2
     local show_clock  = isClockEnabled(ctx.pfx)
     local show_date   = isDateEnabled(ctx.pfx)
     local show_batt   = isBattEnabled(ctx.pfx)
+    local show_meta   = show_date or show_batt
 
     local h = h_base
     if show_clock then h = h + clock_w end
-    if show_date  then
-        h = h + date_h
+    if show_meta then
+        h = h + math.max(date_h, batt_h)
         if show_clock then h = h + date_gap end
-    end
-    if show_batt  then
-        h = h + batt_h
-        if show_clock or show_date then h = h + batt_gap end
     end
     return h
 end

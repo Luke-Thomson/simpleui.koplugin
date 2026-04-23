@@ -117,7 +117,7 @@ M.MAX_CUSTOM_QA          = 24
 -- When the navpager is enabled the bar always shows exactly this many centre tabs.
 M.NAVPAGER_CENTER_TABS   = 4
 
-M.DEFAULT_TABS = { "homescreen", "opds", "stats_page", "highlights" }
+M.DEFAULT_TABS = { "home", "opds", "stats_page", "highlights" }
 
 -- Fallback tab IDs used when a duplicate 'home' is detected.
 M.NON_HOME_DEFAULTS = {}
@@ -131,7 +131,7 @@ end
 
 M.ALL_ACTIONS = {
     { id = "home",             label = _("Library"),          icon = M.ICON.library     },
-    { id = "homescreen",       label = _("Home"),             icon = M.ICON.ko_home     },
+    { id = "homescreen",       label = _("Dashboard"),        icon = M.ICON.ko_home     },
     { id = "opds",             label = _("OPDS"),             icon = M.ICON.plugin      },
     { id = "stats_page",       label = _("Stats"),            icon = M.ICON.stats       },
     { id = "highlights",       label = _("Highlights"),       icon = M.ICON.ko_bookmark },
@@ -359,8 +359,9 @@ function M.saveNavbarMode(mode)
 end
 
 function M._ensureHomePresent(tabs)
-    -- Single-pass: find the first 'home' position and collect used ids,
-    -- then fix any duplicate 'home' entries in the same iteration.
+    -- Keep exactly one Library tab in the layout.
+    -- If none is present, restore it in slot 1 so "Home" always maps to the
+    -- real library view instead of whatever older presets left there.
     local home_pos = nil
     local used = {}
     for i, id in ipairs(tabs) do
@@ -382,6 +383,7 @@ function M._ensureHomePresent(tabs)
             used[id] = true
         end
     end
+    if not home_pos then tabs[1] = "home" end
     return tabs
 end
 
@@ -630,7 +632,7 @@ function M.applyFirstRunDefaults()
         G_reader_settings:saveSetting("navbar_bar_size",       "default")
         G_reader_settings:saveSetting("navbar_bar_size_pct",   84)
         G_reader_settings:saveSetting("navbar_tabs",
-            { "homescreen", "opds", "stats_page", "highlights" })
+            { "home", "opds", "stats_page", "highlights" })
 
         -- Top bar: clock left, battery + wifi right; rest hidden
         M.saveTopbarConfig({
@@ -675,7 +677,7 @@ function M.applyFirstRunDefaults()
         G_reader_settings:saveSetting(SPFX .. "reading_stats_type", "list")
 
         -- General
-        G_reader_settings:saveSetting("start_with", "homescreen_simpleui")
+        G_reader_settings:saveSetting("start_with", "filemanager")
 
         G_reader_settings:saveSetting("simpleui_defaults_v1", true)
     end
@@ -731,9 +733,9 @@ function M.applyFirstRunDefaults()
         local SPFX = "navbar_statspage_"
 
         G_reader_settings:saveSetting("navbar_tabs",
-            { "homescreen", "opds", "stats_page", "highlights" })
+            { "home", "opds", "stats_page", "highlights" })
         G_reader_settings:saveSetting("navbar_bar_size_pct", 84)
-        G_reader_settings:saveSetting("start_with", "homescreen_simpleui")
+        G_reader_settings:saveSetting("start_with", "filemanager")
 
         G_reader_settings:saveSetting(PFX .. "clock_enabled",  false)
         G_reader_settings:saveSetting(PFX .. "clock_date",     false)
@@ -767,6 +769,69 @@ function M.applyFirstRunDefaults()
         G_reader_settings:saveSetting(SPFX .. "reading_stats_type", "list")
 
         G_reader_settings:saveSetting("simpleui_defaults_v4", true)
+    end
+
+    -- ---------------------------------------------------------------------------
+    -- v5: make the first tab the real library instead of the dashboard.
+    -- Existing installs that still use the old 4-tab preset are migrated
+    -- conservatively; custom tab layouts are left untouched.
+    -- ---------------------------------------------------------------------------
+    if not G_reader_settings:readSetting("simpleui_defaults_v5") then
+        local tabs = G_reader_settings:readSetting("navbar_tabs")
+        if type(tabs) == "table"
+           and tabs[1] == "homescreen"
+           and not M.tabInTabs("home", tabs) then
+            tabs[1] = "home"
+            G_reader_settings:saveSetting("navbar_tabs", tabs)
+            if G_reader_settings:readSetting("start_with") == "homescreen_simpleui" then
+                G_reader_settings:saveSetting("start_with", "filemanager")
+            end
+        end
+        G_reader_settings:saveSetting("simpleui_defaults_v5", true)
+    end
+
+    -- ---------------------------------------------------------------------------
+    -- v6: normalize older/custom tab layouts so Library is always present in
+    -- the first slot. This fixes installs that removed the home tab entirely or
+    -- still keep the legacy dashboard in the first slot.
+    -- ---------------------------------------------------------------------------
+    if not G_reader_settings:readSetting("simpleui_defaults_v6") then
+        local tabs = G_reader_settings:readSetting("navbar_tabs")
+        local changed = false
+
+        if type(tabs) == "table" then
+            local home_pos = nil
+            for i, id in ipairs(tabs) do
+                if id == "home" then
+                    home_pos = i
+                    break
+                end
+            end
+
+            if tabs[1] == "homescreen" then
+                if home_pos and home_pos ~= 1 then
+                    tabs[home_pos] = "homescreen"
+                end
+                tabs[1] = "home"
+                changed = true
+            elseif not home_pos then
+                tabs[1] = "home"
+                changed = true
+            end
+
+            M._ensureHomePresent(tabs)
+            if changed then
+                G_reader_settings:saveSetting("navbar_tabs", tabs)
+                M.invalidateTabsCache()
+            end
+
+            if G_reader_settings:readSetting("start_with") == "homescreen_simpleui"
+               and not M.tabInTabs("homescreen", tabs) then
+                G_reader_settings:saveSetting("start_with", "filemanager")
+            end
+        end
+
+        G_reader_settings:saveSetting("simpleui_defaults_v6", true)
     end
 end
 

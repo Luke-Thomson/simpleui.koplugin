@@ -43,7 +43,7 @@ local _dim = {}
 
 M.PAD           = Screen:scaleBySize(14)
 M.PAD2          = Screen:scaleBySize(8)
-M.MOD_GAP       = Screen:scaleBySize(23)   -- includes former LABEL_PAD_TOP (8px)
+M.MOD_GAP       = Screen:scaleBySize(18)   -- slightly denser, closer to KOReader dashboards
 M.SIDE_PAD      = Screen:scaleBySize(14)
 M.LABEL_PAD_TOP = 0                         -- absorbed into MOD_GAP
 M.LABEL_PAD_BOT = M.PAD2                    -- padding_bottom of sectionLabel (was 4px, now 8px)
@@ -51,8 +51,11 @@ M.LABEL_TEXT_H  = Screen:scaleBySize(16)    -- TextWidget height at SECTION_LABE
 M.LABEL_H       = M.LABEL_PAD_TOP + M.LABEL_PAD_BOT + M.LABEL_TEXT_H
 
 -- Shared secondary text colour used across all desktop modules.
--- Edit this single value to retheme every module at once.
-M.CLR_TEXT_SUB  = Blitbuffer.COLOR_BLACK
+-- A softer gray improves hierarchy on e-ink and keeps the page from reading
+-- like one large block of equally-dark text.
+M.CLR_TEXT_SUB  = Blitbuffer.gray(0.45)
+M.CLR_BORDER    = Blitbuffer.gray(0.72)
+M.CLR_SURFACE   = Blitbuffer.gray(0.08)
 
 -- ---------------------------------------------------------------------------
 -- Shared menu-item resolver

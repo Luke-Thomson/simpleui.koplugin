@@ -992,7 +992,65 @@ local function _resolvePluginLauncher(match_fn)
     return nil, nil, nil
 end
 
-local function _launchOPDSCatalog()
+local _OPDS_PIN_URL_KEY   = "simpleui_opds_pinned_url"
+local _OPDS_PIN_TITLE_KEY = "simpleui_opds_pinned_title"
+
+local function _getPinnedOPDS()
+    return G_reader_settings:readSetting(_OPDS_PIN_URL_KEY),
+           G_reader_settings:readSetting(_OPDS_PIN_TITLE_KEY)
+end
+
+local function _setPinnedOPDS(item)
+    if not (item and item.url) then return end
+    G_reader_settings:saveSetting(_OPDS_PIN_URL_KEY, item.url)
+    if item.text then
+        G_reader_settings:saveSetting(_OPDS_PIN_TITLE_KEY, item.text)
+    end
+end
+
+local function _wrapOPDSBrowser(browser)
+    if not browser or browser._simpleui_pinned_wrap then return end
+    browser._simpleui_pinned_wrap = true
+    local orig_onMenuSelect = browser.onMenuSelect
+    if type(orig_onMenuSelect) ~= "function" then return end
+
+    browser.onMenuSelect = function(self, item, ...)
+        local at_root = not self.paths or #self.paths == 0
+        if at_root and type(item) == "table" and item.url then
+            _setPinnedOPDS(item)
+        end
+        return orig_onMenuSelect(self, item, ...)
+    end
+end
+
+local function _openPinnedOPDSRoot(plugin_inst)
+    local pinned_url, pinned_title = _getPinnedOPDS()
+    local browser = plugin_inst and plugin_inst.opds_browser
+    if not (browser and type(browser.onMenuSelect) == "function" and browser.item_table) then
+        return false
+    end
+
+    local target = nil
+    for _, item in ipairs(browser.item_table) do
+        if type(item) == "table" and item.url then
+            if item.url == pinned_url or (pinned_title and item.text == pinned_title) then
+                target = item
+                break
+            end
+        end
+    end
+    if not target then return false end
+
+    UIManager:nextTick(function()
+        local live_browser = plugin_inst and plugin_inst.opds_browser
+        if live_browser == browser and type(live_browser.onMenuSelect) == "function" then
+            pcall(function() live_browser:onMenuSelect(target) end)
+        end
+    end)
+    return true
+end
+
+local function _launchOPDSCatalog(prefer_pinned, force_selector)
     local function is_opds_label(text)
         local lower = tostring(text or ""):lower()
         return lower:find("opds", 1, true) ~= nil
@@ -1007,9 +1065,26 @@ local function _launchOPDSCatalog()
     local ok = pcall(function()
         plugin_inst[method](plugin_inst)
     end)
+    if not ok then return false end
+
+    local browser = plugin_inst.opds_browser
+    if browser then
+        _wrapOPDSBrowser(browser)
+        if prefer_pinned and not force_selector then
+            _openPinnedOPDSRoot(plugin_inst)
+        end
+    end
+
     return ok
 end
 M.launchOPDSCatalog = _launchOPDSCatalog
+function M.hasPinnedOPDSCatalog()
+    local url = G_reader_settings:readSetting(_OPDS_PIN_URL_KEY)
+    return type(url) == "string" and url ~= ""
+end
+function M.getPinnedOPDSTitle()
+    return G_reader_settings:readSetting(_OPDS_PIN_TITLE_KEY)
+end
 
 local function setActiveAndRefreshFM(plugin, action_id, tabs)
     -- Never mark an action-only tab (bookmark_browser, wifi, etc.) as the

@@ -16,24 +16,24 @@ local OverlapGroup    = require("ui/widget/overlapgroup")
 local TextWidget      = require("ui/widget/textwidget")
 local UIManager       = require("ui/uimanager")
 local VerticalGroup   = require("ui/widget/verticalgroup")
+local VerticalSpan    = require("ui/widget/verticalspan")
 local Screen          = Device.screen
 local _               = require("gettext")
 local Config          = require("sui_config")
 
 local UI      = require("sui_core")
 local CLR_TEXT_SUB = UI.CLR_TEXT_SUB
+local CLR_BORDER   = UI.CLR_BORDER
+local CLR_SURFACE  = UI.CLR_SURFACE
 local PAD     = UI.PAD
-local MOD_GAP = UI.MOD_GAP
-local LABEL_H = UI.LABEL_H
 
 local _CLR_TEXT_BLK  = Blitbuffer.COLOR_BLACK
-local _CLR_CARD_BDR  = Blitbuffer.gray(0.72)
 
 local _BASE_RS_CORNER_R = Screen:scaleBySize(12)
 local _BASE_RS_GAP      = Screen:scaleBySize(12)
-local _BASE_RS_CARD_H   = Screen:scaleBySize(96)
+local _BASE_RS_CARD_H   = Screen:scaleBySize(78)
 local _BASE_RS_VAL_FS   = Screen:scaleBySize(14)
-local _BASE_RS_LBL_FS   = Screen:scaleBySize(8)
+local _BASE_RS_LBL_FS   = Screen:scaleBySize(9)
 local _BASE_RS_SEP_W    = Screen:scaleBySize(1)
 local _BASE_RS_PH_FS    = Screen:scaleBySize(11)  -- placeholder "No stats" text
 
@@ -82,7 +82,7 @@ table.sort(_sorted_pool, function(a, b) return a.label:lower() < b.label:lower()
 -- Stat widget builders
 -- ---------------------------------------------------------------------------
 
--- Cards mode: rounded border, content centred inside the card.
+-- Cards mode: compact stat blocks with a stronger text hierarchy.
 -- `d` is the scaled-dims table produced once per M.build() call.
 -- Streak value widget: icon (dark grey) + space + number (black), side by side.
 -- To change icon colour: edit _STREAK_ICON_CLR.
@@ -108,86 +108,69 @@ local function makeStreakValWidget(val_str, d)
     }
 end
 
-local function buildStatCardWidget(card_w, stat_id, stats, d)
+local function buildStatContent(card_w, stat_id, stats, d)
     local entry = STAT_MAP[stat_id]
     if not entry then return nil end
     local val_str = entry.value(stats)
     local lbl_str = entry.label_fn and entry.label_fn(stats) or entry.label
-    return FrameContainer:new{
-        dimen      = Geom:new{ w = card_w, h = d.card_h },
-        bordersize = 1,
-        color      = _CLR_CARD_BDR,
-        background = Blitbuffer.COLOR_WHITE,
-        radius     = d.corner_r,
-        padding    = 0,
-        CenterContainer:new{
-            dimen = Geom:new{ w = card_w, h = d.card_h },
-            VerticalGroup:new{ align = "center",
-                stat_id == "streak" and stats.streak >= 5
-                    and makeStreakValWidget(val_str, d)
-                    or  TextWidget:new{ text = val_str, face = d.face_val, bold = true, fgcolor = _CLR_TEXT_BLK },
-                TextWidget:new{
-                    text    = lbl_str,
-                    face    = d.face_lbl,
-                    fgcolor = CLR_TEXT_SUB,
+    local inner_w = math.max(0, card_w - d.card_pad * 2)
+    return VerticalGroup:new{
+        align = "left",
+        stat_id == "streak" and stats.streak >= 5
+            and makeStreakValWidget(val_str, d)
+            or  TextWidget:new{
+                    text    = val_str,
+                    face    = d.face_val,
+                    bold    = true,
+                    fgcolor = _CLR_TEXT_BLK,
+                    width   = inner_w,
                 },
-            },
+        TextWidget:new{
+            text    = lbl_str,
+            face    = d.face_lbl,
+            fgcolor = CLR_TEXT_SUB,
+            width   = inner_w,
         },
     }
 end
 
--- Flat mode: no border, tinted background, content centred.
-local _CLR_FLAT_BG = Blitbuffer.gray(0.08)
+local function buildStatCardWidget(card_w, stat_id, stats, d)
+    local content = buildStatContent(card_w, stat_id, stats, d)
+    if not content then return nil end
+    return FrameContainer:new{
+        dimen      = Geom:new{ w = card_w, h = d.card_h },
+        bordersize = 1,
+        color      = CLR_BORDER,
+        background = Blitbuffer.COLOR_WHITE,
+        radius     = d.corner_r,
+        padding    = d.card_pad,
+        content,
+    }
+end
+
+-- Flat mode: same layout, but on a soft tinted surface.
 local function buildStatFlatWidget(card_w, stat_id, stats, d)
-    local entry = STAT_MAP[stat_id]
-    if not entry then return nil end
-    local val_str = entry.value(stats)
-    local lbl_str = entry.label_fn and entry.label_fn(stats) or entry.label
+    local content = buildStatContent(card_w, stat_id, stats, d)
+    if not content then return nil end
     return FrameContainer:new{
         dimen      = Geom:new{ w = card_w, h = d.card_h },
         bordersize = 0,
-        background = _CLR_FLAT_BG,
+        background = CLR_SURFACE,
         radius     = d.corner_r,
-        padding    = 0,
-        CenterContainer:new{
-            dimen = Geom:new{ w = card_w, h = d.card_h },
-            VerticalGroup:new{ align = "center",
-                stat_id == "streak" and stats.streak >= 5
-                    and makeStreakValWidget(val_str, d)
-                    or  TextWidget:new{ text = val_str, face = d.face_val, bold = true, fgcolor = _CLR_TEXT_BLK },
-                TextWidget:new{
-                    text    = lbl_str,
-                    face    = d.face_lbl,
-                    fgcolor = CLR_TEXT_SUB,
-                },
-            },
-        },
+        padding    = d.card_pad,
+        content,
     }
 end
 local function buildStatListCell(cell_w, stat_id, stats, show_sep, d)
-    local entry = STAT_MAP[stat_id]
-    if not entry then return nil end
-    local val_str = entry.value(stats)
-    local lbl_str = entry.label_fn and entry.label_fn(stats) or entry.label
+    local content = buildStatContent(cell_w, stat_id, stats, d)
+    if not content then return nil end
 
     local card = FrameContainer:new{
         dimen      = Geom:new{ w = cell_w, h = d.card_h },
         bordersize = 0,
         background = Blitbuffer.COLOR_WHITE,
-        padding    = 0,
-        CenterContainer:new{
-            dimen = Geom:new{ w = cell_w, h = d.card_h },
-            VerticalGroup:new{ align = "left",
-                stat_id == "streak" and stats.streak >= 5
-                    and makeStreakValWidget(val_str, d)
-                    or  TextWidget:new{ text = val_str, face = d.face_val, bold = true, fgcolor = _CLR_TEXT_BLK },
-                TextWidget:new{
-                    text    = lbl_str,
-                    face    = d.face_lbl,
-                    fgcolor = CLR_TEXT_SUB,
-                },
-            },
-        },
+        padding    = d.card_pad,
+        content,
     }
 
     local og = OverlapGroup:new{
@@ -197,7 +180,7 @@ local function buildStatListCell(cell_w, stat_id, stats, show_sep, d)
     if show_sep then
         local sep = LineWidget:new{
             dimen      = Geom:new{ w = d.sep_w, h = d.card_h },
-            background = _CLR_CARD_BDR,
+            background = CLR_BORDER,
         }
         sep.overlap_offset = { cell_w - d.sep_w, 0 }
         og[#og+1] = sep
@@ -207,6 +190,79 @@ end
 
 local function openReaderProgress()
     UIManager:broadcastEvent(require("ui/event"):new("ShowReaderProgress"))
+end
+
+local function getGridMetrics(w, n, d)
+    local avail_w  = w - PAD * 2
+    local max_cols = math.min(3, n)
+    local fit_cols = math.max(1, math.floor((avail_w + d.gap) / (d.min_card_w + d.gap)))
+    local cols     = math.max(1, math.min(max_cols, fit_cols))
+    local rows     = math.ceil(n / cols)
+    return {
+        avail_w = avail_w,
+        cols    = cols,
+        rows    = rows,
+        h       = rows * d.card_h + (rows - 1) * d.row_gap,
+    }
+end
+
+local function buildGridRows(w, stat_ids, stats, d, mode)
+    local n      = math.min(#stat_ids, RS_N_COLS)
+    local grid_d = getGridMetrics(w, n, d)
+    local grid   = VerticalGroup:new{ align = "left" }
+    local cursor = 1
+
+    for row_idx = 1, grid_d.rows do
+        local remaining     = n - cursor + 1
+        local cols_this_row = math.min(grid_d.cols, remaining)
+        local row = HorizontalGroup:new{ align = "top" }
+
+        if mode == "list" then
+            local cell_w = math.floor(grid_d.avail_w / cols_this_row)
+            for i = 1, cols_this_row do
+                row[#row + 1] = buildStatListCell(cell_w, stat_ids[cursor], stats, i < cols_this_row, d)
+                    or OverlapGroup:new{ dimen = Geom:new{ w = cell_w, h = d.card_h } }
+                cursor = cursor + 1
+            end
+        else
+            local card_w = math.floor((grid_d.avail_w - d.gap * (cols_this_row - 1)) / cols_this_row)
+            for i = 1, cols_this_row do
+                local card = mode == "flat"
+                    and buildStatFlatWidget(card_w, stat_ids[cursor], stats, d)
+                    or  buildStatCardWidget(card_w, stat_ids[cursor], stats, d)
+                if i > 1 then row[#row + 1] = HorizontalSpan:new{ width = d.gap } end
+                row[#row + 1] = card or FrameContainer:new{
+                    dimen = Geom:new{ w = card_w, h = d.card_h },
+                    bordersize = 0, padding = 0,
+                }
+                cursor = cursor + 1
+            end
+        end
+
+        grid[#grid + 1] = CenterContainer:new{
+            dimen = Geom:new{ w = w, h = d.card_h },
+            row,
+        }
+        if row_idx < grid_d.rows then
+            grid[#grid + 1] = VerticalSpan:new{ width = d.row_gap }
+        end
+    end
+
+    local frame = FrameContainer:new{
+        dimen      = Geom:new{ w = w, h = grid_d.h },
+        bordersize = 0,
+        padding    = 0,
+        grid,
+    }
+    local tappable = InputContainer:new{
+        dimen = Geom:new{ w = w, h = grid_d.h },
+        [1]   = frame,
+    }
+    tappable.ges_events = {
+        TapStatCard = { GestureRange:new{ ges = "tap", range = function() return tappable.dimen end } },
+    }
+    function tappable:onTapStatCard() openReaderProgress(); return true end
+    return tappable
 end
 
 -- ---------------------------------------------------------------------------
@@ -267,10 +323,13 @@ function M.build(w, ctx)
         card_h   = math.floor(_BASE_RS_CARD_H   * scale),
         gap      = math.max(2, math.floor(_BASE_RS_GAP      * scale)),
         corner_r = math.floor(_BASE_RS_CORNER_R  * scale),
+        row_gap  = math.max(PAD, math.floor(_BASE_RS_GAP * scale * 0.75)),
         val_fs   = _val_fs,
         lbl_fs   = _lbl_fs,
         sep_w    = math.max(1, math.floor(_BASE_RS_SEP_W    * scale)),
         ph_fs    = _ph_fs,
+        card_pad = math.max(6, math.floor(Screen:scaleBySize(10) * scale)),
+        min_card_w = math.max(Screen:scaleBySize(96), math.floor(Screen:scaleBySize(110) * scale)),
         -- Pre-resolved font faces — shared by all card builders, avoids
         -- repeated Font:getFace calls inside the per-card build loop.
         face_val = Font:getFace("smallinfofont", _val_fs),
@@ -291,7 +350,6 @@ function M.build(w, ctx)
         }
     end
 
-    local n    = math.min(#stat_ids, RS_N_COLS)
     -- Stats are pre-fetched by StatsProvider (via _buildCtx) and passed in
     -- ctx.stats — no DB access or cache logic here.
     local sp   = ctx.stats or {}
@@ -306,79 +364,24 @@ function M.build(w, ctx)
     }
     if sp.db_conn_fatal and ctx then ctx.db_conn_fatal = true end
     local mode  = getType(ctx.pfx)
-    local row    = HorizontalGroup:new{ align = "center" }
-
-    if mode == "list" then
-        local cell_w = math.floor(w / n)
-        for i = 1, n do
-            local cell = buildStatListCell(cell_w, stat_ids[i], stats, i < n, d)
-                      or OverlapGroup:new{
-                             dimen = Geom:new{ w = cell_w, h = d.card_h },
-                         }
-            row[#row+1] = cell
-        end
-
-        -- Single tappable over the whole row — all cards open the same screen,
-        -- so one InputContainer + one GestureRange + one handler replaces N of each.
-        local frame = FrameContainer:new{
-            dimen      = Geom:new{ w = w, h = d.card_h },
-            bordersize = 0, padding = 0,
-            row,
-        }
-        local tappable = InputContainer:new{
-            dimen = Geom:new{ w = w, h = d.card_h },
-            [1]   = frame,
-        }
-        tappable.ges_events = {
-            TapStatCard = { GestureRange:new{ ges = "tap", range = function() return tappable.dimen end } },
-        }
-        function tappable:onTapStatCard() openReaderProgress(); return true end
-        return tappable
-    else
-        -- Cards / Flat mode: rounded cards with gaps between them.
-        -- "flat" = no border, tinted background; "cards" = bordered white.
-        local avail_w = w - PAD * 2
-        local card_w  = math.floor((avail_w - d.gap * (n - 1)) / n)
-        for i = 1, n do
-            local card
-            if mode == "flat" then
-                card = buildStatFlatWidget(card_w, stat_ids[i], stats, d)
-            else
-                card = buildStatCardWidget(card_w, stat_ids[i], stats, d)
-            end
-            card = card or FrameContainer:new{
-                dimen = Geom:new{ w = card_w, h = d.card_h },
-                bordersize = 0, padding = 0,
-            }
-            if i > 1 then row[#row+1] = HorizontalSpan:new{ width = d.gap } end
-            row[#row+1] = card
-        end
-
-        -- Single tappable over the whole row — one InputContainer + one
-        -- GestureRange + one handler replaces N of each (N ≤ RS_N_COLS = 3).
-        local inner = CenterContainer:new{
-            dimen = Geom:new{ w = w, h = d.card_h },
-            row,
-        }
-        local tappable = InputContainer:new{
-            dimen = Geom:new{ w = w, h = d.card_h },
-            [1]   = FrameContainer:new{
-                dimen      = Geom:new{ w = w, h = d.card_h },
-                bordersize = 0, padding = 0,
-                inner,
-            },
-        }
-        tappable.ges_events = {
-            TapStatCard = { GestureRange:new{ ges = "tap", range = function() return tappable.dimen end } },
-        }
-        function tappable:onTapStatCard() openReaderProgress(); return true end
-        return tappable
-    end
+    return buildGridRows(w, stat_ids, stats, d, mode)
 end
 
 function M.getHeight(_ctx)
-    local card_h = math.floor(_BASE_RS_CARD_H * Config.getModuleScale("reading_stats", _ctx and _ctx.pfx))
-    return card_h
+    local pfx   = _ctx and _ctx.pfx
+    local scale = Config.getModuleScale("reading_stats", pfx)
+    local n     = #(G_reader_settings:readSetting((pfx or "") .. "reading_stats_items") or {})
+    if n == 0 then
+        return math.floor(_BASE_RS_CARD_H * scale)
+    end
+    local d = {
+        card_h = math.floor(_BASE_RS_CARD_H * scale),
+        gap = math.max(2, math.floor(_BASE_RS_GAP * scale)),
+        row_gap = math.max(PAD, math.floor(_BASE_RS_GAP * scale * 0.75)),
+        min_card_w = math.max(Screen:scaleBySize(96), math.floor(Screen:scaleBySize(110) * scale)),
+    }
+    local w = Screen:getWidth() - UI.SIDE_PAD * 2
+    return getGridMetrics(w, math.min(n, RS_N_COLS), d).h
 end
 
 
