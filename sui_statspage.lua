@@ -82,12 +82,13 @@ function StatsPageWidget:_rebuild()
     local goals = GoalsMod.build(content_w, ctx)
     if goals then
         body[#body + 1] = goals
-        body[#body + 1] = VerticalSpan:new{ width = UI.MOD_GAP }
+        body[#body + 1] = VerticalSpan:new{ width = UI.MOD_GAP * 2 }
     end
 
     local stats = StatsMod.build(content_w, ctx)
     if stats then
         body[#body + 1] = stats
+        body[#body + 1] = VerticalSpan:new{ width = UI.MOD_GAP }
     end
 
     if not goals and not stats then

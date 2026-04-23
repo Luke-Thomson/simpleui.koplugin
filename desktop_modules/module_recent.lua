@@ -44,6 +44,7 @@ local _BASE_RB_PCT_FS = Screen:scaleBySize(8)  -- "XX% Read" label font size —
 local SETTING_PROGRESS = "recent_show_progress"  -- pfx .. this; default ON
 local SETTING_TEXT     = "recent_show_text"       -- pfx .. this; default ON
 local SETTING_OVERLAY  = "recent_show_overlay"    -- pfx .. this; default OFF
+local SETTING_ROWS     = "recent_rows"            -- pfx .. this; default 1
 
 local function showProgress(pfx)
     return G_reader_settings:readSetting(pfx .. SETTING_PROGRESS) ~= false
@@ -53,6 +54,11 @@ local function showText(pfx)
 end
 local function showOverlay(pfx)
     return G_reader_settings:readSetting(pfx .. SETTING_OVERLAY) == true
+end
+local function getRows(pfx)
+    local n = tonumber(G_reader_settings:readSetting(pfx .. SETTING_ROWS))
+    if not n then return 1 end
+    return math.max(1, math.min(4, math.floor(n)))
 end
 
 
@@ -80,6 +86,8 @@ function M.build(w, ctx)
     local pct_fs = math.max(8, math.floor(_BASE_RB_PCT_FS * scale * lbl_scale))
 
     local cols    = math.min(#ctx.recent_fps, 5)
+    local max_rows = getRows(ctx.pfx)
+    local shown   = math.min(#ctx.recent_fps, cols * max_rows)
     local cw      = D.RECENT_W
     local ch      = D.RECENT_H
     -- Space-between across 5 fixed slots with same lateral padding as other modules (PAD).
@@ -102,8 +110,15 @@ function M.build(w, ctx)
     -- Total tappable cell height.
     local cell_h = use_overlay and (ch + badge_r) or D.RECENT_CELL_H
 
-    local row = HorizontalGroup:new{ align = "top" }
-    for i = 1, cols do
+    local row_gap = math.max(PAD2, D.RB_GAP1 * 2)
+    local grid = VerticalGroup:new{ align = "left" }
+    local num_rows = math.max(1, math.ceil(shown / cols))
+
+    for row_idx = 1, num_rows do
+        local row = HorizontalGroup:new{ align = "top" }
+        local start_i = (row_idx - 1) * cols + 1
+        local end_i   = math.min(shown, start_i + cols - 1)
+        for i = start_i, end_i do
         local fp    = ctx.recent_fps[i]
         local bd    = SH.getBookData(fp, ctx.prefetched and ctx.prefetched[fp])
         local cover = SH.getBookCover(fp, cw, ch, nil, 0.10) or SH.coverPlaceholder(bd.title, cw, ch)
@@ -201,19 +216,27 @@ function M.build(w, ctx)
 
         -- Use HorizontalSpan for inter-cell spacing instead of a zero-border
         -- FrameContainer — avoids 4 unnecessary widget allocations per render.
-        if i > 1 then row[#row + 1] = HorizontalSpan:new{ width = gap } end
-        row[#row + 1] = cell_widget
+            if i > start_i then row[#row + 1] = HorizontalSpan:new{ width = gap } end
+            row[#row + 1] = cell_widget
+        end
+        grid[#grid + 1] = row
+        if row_idx < num_rows then
+            grid[#grid + 1] = VerticalSpan:new{ width = row_gap }
+        end
     end
 
     return FrameContainer:new{
         bordersize = 0, padding = PAD, padding_top = 0, padding_bottom = 0,
-        row,
+        grid,
     }
 end
 
 function M.getHeight(ctx)
     local SH  = getSH()
     local pfx = ctx and ctx.pfx or ""
+    local rows = getRows(pfx)
+    local visible = ctx and ctx.recent_fps and math.min(#ctx.recent_fps, rows * 5) or rows * 5
+    local num_rows = math.max(1, math.ceil(visible / 5))
     local D   = SH.getDims(Config.getModuleScale("recent", pfx),
                             Config.getThumbScale("recent", pfx))
     local use_overlay = showOverlay(pfx)
@@ -231,7 +254,8 @@ function M.getHeight(ctx)
             h = h + D.RB_LABEL_H
         end
     end
-    return require("sui_config").getScaledLabelH() + h
+    local row_gap = math.max(PAD2, D.RB_GAP1 * 2)
+    return require("sui_config").getScaledLabelH() + h * num_rows + row_gap * (num_rows - 1)
 end
 
 

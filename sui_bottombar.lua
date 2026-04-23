@@ -1009,6 +1009,7 @@ local function _launchOPDSCatalog()
     end)
     return ok
 end
+M.launchOPDSCatalog = _launchOPDSCatalog
 
 local function setActiveAndRefreshFM(plugin, action_id, tabs)
     -- Never mark an action-only tab (bookmark_browser, wifi, etc.) as the
@@ -1476,7 +1477,10 @@ function M.navigate(plugin, action_id, fm_self, tabs, force)
         end
 
     elseif action_id == "opds" then
-        if not _launchOPDSCatalog() then
+        local ok_opds, OPDSPage = pcall(require, "sui_opdspage")
+        if ok_opds and OPDSPage and type(OPDSPage.show) == "function" then
+            OPDSPage.show()
+        elseif not _launchOPDSCatalog() then
             showUnavailable(_("OPDS catalog not available."))
         end
 

@@ -628,6 +628,7 @@ function M.applyFirstRunDefaults()
         G_reader_settings:saveSetting("navbar_topbar_enabled", true)
         G_reader_settings:saveSetting("navbar_mode",           "both")
         G_reader_settings:saveSetting("navbar_bar_size",       "default")
+        G_reader_settings:saveSetting("navbar_bar_size_pct",   84)
         G_reader_settings:saveSetting("navbar_tabs",
             { "homescreen", "opds", "stats_page", "highlights" })
 
@@ -640,14 +641,19 @@ function M.applyFirstRunDefaults()
 
         -- Homescreen modules: opinionated library dashboard with cover-heavy modules.
         local PFX = "navbar_homescreen_"
-        G_reader_settings:saveSetting(PFX .. "clock_enabled",  true)
-        G_reader_settings:saveSetting(PFX .. "clock_date",     true)
+        G_reader_settings:saveSetting(PFX .. "clock_enabled",  false)
+        G_reader_settings:saveSetting(PFX .. "clock_date",     false)
         G_reader_settings:saveSetting(PFX .. "clock_battery",  false)
         G_reader_settings:saveSetting(PFX .. "quote_enabled",  false)
         G_reader_settings:saveSetting(PFX .. "currently",      true)
         G_reader_settings:saveSetting(PFX .. "recent",         true)
-        G_reader_settings:saveSetting(PFX .. "coverdeck",      true)
-        G_reader_settings:saveSetting(PFX .. "new_books",      true)
+        G_reader_settings:saveSetting(PFX .. "recent_show_overlay", true)
+        G_reader_settings:saveSetting(PFX .. "recent_show_progress", false)
+        G_reader_settings:saveSetting(PFX .. "recent_show_text", false)
+        G_reader_settings:saveSetting(PFX .. "recent_rows",    3)
+        G_reader_settings:saveSetting(PFX .. "recent_thumb_scale", 85)
+        G_reader_settings:saveSetting(PFX .. "coverdeck",      false)
+        G_reader_settings:saveSetting(PFX .. "new_books",      false)
         G_reader_settings:saveSetting(PFX .. "collections",    false)
         G_reader_settings:saveSetting(PFX .. "tbr",            false)
         G_reader_settings:saveSetting(PFX .. "reading_goals",  false)
@@ -656,7 +662,7 @@ function M.applyFirstRunDefaults()
         G_reader_settings:saveSetting(PFX .. "quick_actions_2_enabled", false)
         G_reader_settings:saveSetting(PFX .. "quick_actions_3_enabled", false)
         G_reader_settings:saveSetting(PFX .. "module_order", {
-            "clock", "currently", "recent", "coverdeck", "new_books",
+            "currently", "recent",
         })
 
         -- Dedicated stats page: reading goals + a compact set of progress stats.
@@ -664,9 +670,9 @@ function M.applyFirstRunDefaults()
         G_reader_settings:saveSetting(SPFX .. "reading_goals", true)
         G_reader_settings:saveSetting(SPFX .. "reading_stats_enabled", true)
         G_reader_settings:saveSetting(SPFX .. "reading_stats_items", {
-            "today_time", "today_pages", "avg_time", "avg_pages", "total_books", "streak",
+            "today_time", "today_pages", "total_books", "streak",
         })
-        G_reader_settings:saveSetting(SPFX .. "reading_stats_type", "cards")
+        G_reader_settings:saveSetting(SPFX .. "reading_stats_type", "list")
 
         -- General
         G_reader_settings:saveSetting("start_with", "homescreen_simpleui")
@@ -726,16 +732,22 @@ function M.applyFirstRunDefaults()
 
         G_reader_settings:saveSetting("navbar_tabs",
             { "homescreen", "opds", "stats_page", "highlights" })
+        G_reader_settings:saveSetting("navbar_bar_size_pct", 84)
         G_reader_settings:saveSetting("start_with", "homescreen_simpleui")
 
-        G_reader_settings:saveSetting(PFX .. "clock_enabled",  true)
-        G_reader_settings:saveSetting(PFX .. "clock_date",     true)
+        G_reader_settings:saveSetting(PFX .. "clock_enabled",  false)
+        G_reader_settings:saveSetting(PFX .. "clock_date",     false)
         G_reader_settings:saveSetting(PFX .. "clock_battery",  false)
         G_reader_settings:saveSetting(PFX .. "quote_enabled",  false)
         G_reader_settings:saveSetting(PFX .. "currently",      true)
         G_reader_settings:saveSetting(PFX .. "recent",         true)
-        G_reader_settings:saveSetting(PFX .. "coverdeck",      true)
-        G_reader_settings:saveSetting(PFX .. "new_books",      true)
+        G_reader_settings:saveSetting(PFX .. "recent_show_overlay", true)
+        G_reader_settings:saveSetting(PFX .. "recent_show_progress", false)
+        G_reader_settings:saveSetting(PFX .. "recent_show_text", false)
+        G_reader_settings:saveSetting(PFX .. "recent_rows",    3)
+        G_reader_settings:saveSetting(PFX .. "recent_thumb_scale", 85)
+        G_reader_settings:saveSetting(PFX .. "coverdeck",      false)
+        G_reader_settings:saveSetting(PFX .. "new_books",      false)
         G_reader_settings:saveSetting(PFX .. "collections",    false)
         G_reader_settings:saveSetting(PFX .. "tbr",            false)
         G_reader_settings:saveSetting(PFX .. "reading_goals",  false)
@@ -744,15 +756,15 @@ function M.applyFirstRunDefaults()
         G_reader_settings:saveSetting(PFX .. "quick_actions_2_enabled", false)
         G_reader_settings:saveSetting(PFX .. "quick_actions_3_enabled", false)
         G_reader_settings:saveSetting(PFX .. "module_order", {
-            "clock", "currently", "recent", "coverdeck", "new_books",
+            "currently", "recent",
         })
 
         G_reader_settings:saveSetting(SPFX .. "reading_goals", true)
         G_reader_settings:saveSetting(SPFX .. "reading_stats_enabled", true)
         G_reader_settings:saveSetting(SPFX .. "reading_stats_items", {
-            "today_time", "today_pages", "avg_time", "avg_pages", "total_books", "streak",
+            "today_time", "today_pages", "total_books", "streak",
         })
-        G_reader_settings:saveSetting(SPFX .. "reading_stats_type", "cards")
+        G_reader_settings:saveSetting(SPFX .. "reading_stats_type", "list")
 
         G_reader_settings:saveSetting("simpleui_defaults_v4", true)
     end

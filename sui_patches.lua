@@ -1169,7 +1169,7 @@ function M.patchUIManagerShow(plugin)
     -- already sized to the content area via _navbar_height_reduced).
     local INJECT_NAMES = {
         collections = true, history = true, coll_list = true, homescreen = true,
-        statspage = true, highlights = true,
+        statspage = true, highlights = true, opdspage = true,
     }
 
     -- Resolve the live FM menu at call time so we never capture a stale reference.
@@ -1292,6 +1292,8 @@ function M.patchUIManagerShow(plugin)
             effective_action = Bottombar.setActiveAndRefreshFM(plugin, "stats_page", tabs)
         elseif widget.name == "highlights" and tabs_set["highlights"] then
             effective_action = Bottombar.setActiveAndRefreshFM(plugin, "highlights", tabs)
+        elseif widget.name == "opdspage" and tabs_set["opds"] then
+            effective_action = Bottombar.setActiveAndRefreshFM(plugin, "opds", tabs)
         elseif widget.name == "coll_list"
                or (widget.name == "collections" and not Config.isFavoritesWidget(widget)) then
             if tabs_set["collections"] then
